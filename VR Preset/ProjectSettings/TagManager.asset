@@ -14,11 +14,11 @@ TagManager:
   - UI
   - Left Hand Physics
   - Right Hand Physics
-  - 
-  - 
-  - 
-  - 
-  - 
+  - NPCBodyCollider
+  - Floor
+  - Staircase
+  - NPC
+  - Player
   - 
   - 
   - 
