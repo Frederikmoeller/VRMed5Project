@@ -20,7 +20,7 @@ public class NPCTurnController : MonoBehaviour
         animator = GetComponent<Animator>();
         _navMeshAgent = GetComponent<NavMeshAgent>();
         rb = GetComponent<Rigidbody>();
-        SetNewDestination();
+        //SetNewDestination();
     }
 
     void Update()
@@ -42,10 +42,10 @@ public class NPCTurnController : MonoBehaviour
         }
         
         // Handle walking and reaching the destination
-        if (_isWaiting) return;
+        /*if (_isWaiting) return;
         if (_navMeshAgent.remainingDistance <= _navMeshAgent.stoppingDistance && !_navMeshAgent.pathPending)
         {
-            if (!_isWaiting)
+            if (!_isWaiting || _navMeshAgent.velocity.magnitude < 0.1)
             {
                 animator.SetBool("Walking", false);
                 StartCoroutine(WaitBeforeNextMove()); // Start wait coroutine before setting new destination
@@ -53,8 +53,8 @@ public class NPCTurnController : MonoBehaviour
         }
         else
         {
-            animator.SetBool("Walking", true);
-        }
+            animator.SetBool("Walking", false);
+        }*/
     }
 
     // Coroutine to wait for a set amount of time before moving to the next destination
@@ -62,7 +62,7 @@ public class NPCTurnController : MonoBehaviour
     {
         _isWaiting = true;
         yield return new WaitForSeconds(Random.Range(1f, 10f)); // Wait for the specified time
-        SetNewDestination();
+        //SetNewDestination();
         _isWaiting = false;
     }
 
