@@ -21,7 +21,7 @@ public class NPCTurnController : MonoBehaviour
         _navMeshAgent = GetComponent<NavMeshAgent>();
         rb = GetComponent<Rigidbody>();
         //SetNewDestination();
-        _navMeshAgent.destination = NPCDestination.position;
+        //_navMeshAgent.destination = NPCDestination.position;
     }
 
     void Update()
@@ -42,7 +42,7 @@ public class NPCTurnController : MonoBehaviour
             }
         }
 
-        if (transform.position != _navMeshAgent.destination)
+        /*if (transform.position != _navMeshAgent.destination)
         {
             animator.SetFloat("WalkAnimSpeed", _navMeshAgent.velocity.magnitude);
             if (_navMeshAgent.remainingDistance <= _navMeshAgent.stoppingDistance && !_navMeshAgent.pathPending)
@@ -59,7 +59,7 @@ public class NPCTurnController : MonoBehaviour
             {
                 animator.SetBool("Walking", true);
             }
-        }
+        }*/
     }
 
     // Handle walking and reaching the destination

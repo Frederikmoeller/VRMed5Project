@@ -8,6 +8,7 @@ public class NPCFOV : MonoBehaviour
     [SerializeField] private float detectionRadius = 7.5f;
     [SerializeField] private float fieldOfViewAngle = 60f;
     [SerializeField] private LayerMask playerLayer;
+    [SerializeField] private LayerMask obstacleLayer;
     [SerializeField] private Transform head;
     [SerializeField] private float headTurnSpeed = 5f;
     [SerializeField] private float bodyRotationSpeed = 2f;
@@ -110,30 +111,37 @@ public class NPCFOV : MonoBehaviour
     }
 
     // Helper method to determine if the current target is valid
+    // Helper method to determine if the current target is valid
     bool IsValidTarget(Transform target)
     {
-    if (target == null) return false;
-    float distance = Vector3.Distance(head.position, target.position);
-    Vector3 directionToTarget = (target.position - head.position).normalized;
-    float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
+        if (target == null) return false;
+        float distance = Vector3.Distance(head.position, target.position);
+        Vector3 directionToTarget = (target.position - head.position).normalized;
+        float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
 
-    // Check if target is within detection radius and field of view
-    if (distance <= detectionRadius)
-    {
-        // Ensure there are no obstacles between NPC and target
-        if (Physics.Raycast(head.position, directionToTarget, out RaycastHit hit, detectionRadius))
+        // Check if target is within detection radius and field of view
+        if (distance <= detectionRadius && angleToTarget <= fieldOfViewAngle / 2f)
         {
-            return hit.transform == target;
+            // Raycast to detect obstacles between the NPC and the target
+            if (Physics.Raycast(head.position, directionToTarget, out RaycastHit hit, distance, obstacleLayer))
+            {
+                // Obstacle detected in the path, target is not valid
+                _playerInteracted = false;
+                return false;
+            }
+
+            // No obstacles, target is visible
+            return true;
         }
-    }
-    if (_playerInteracted && inFocusRange && distance > detectionRadius)
-    {
-        _playerInteracted = false;
-        inFocusRange = false;
+
+        if (_playerInteracted && inFocusRange && distance > detectionRadius)
+        {
+            _playerInteracted = false;
+            inFocusRange = false;
+            return false;
+        }
         return false;
     }
-    return false;
-}
 
     float GetSoundThreshold()
     {
@@ -171,14 +179,14 @@ public class NPCFOV : MonoBehaviour
             // Smoothly interpolate from the last target position to the new target position
             Vector3 targetPosition = _currentTarget.position;
 
-            // If a new target is detected, immediately update last known position to avoid snapping
-            if (_isNewTarget)
+            /*if (_isNewTarget)
             {
-                _lastKnownTargetPosition = targetPosition;
+                _lookAtWeight = 0;
                 _isNewTarget = false;
-            }
-                // Smoothly transition to the new target position
-                _currentLookAtPosition = Vector3.Lerp(_currentLookAtPosition, _lastKnownTargetPosition, Time.deltaTime * headTurnSpeed);
+            }*/
+            
+            // Smoothly transition to the new target position
+            _currentLookAtPosition = Vector3.Lerp(_currentLookAtPosition, targetPosition, Time.deltaTime * headTurnSpeed);
             
 
             // Set look-at weight and position
@@ -186,7 +194,7 @@ public class NPCFOV : MonoBehaviour
             _animator.SetLookAtWeight(_lookAtWeight);
             _animator.SetLookAtPosition(_currentLookAtPosition);
 
-            Debug.Log($"Smoothing towards target position at {targetPosition}, Weight: {_lookAtWeight}");
+            //Debug.Log($"Smoothing towards target position at {targetPosition}, Weight: {_lookAtWeight}");
         }
         else
         {
@@ -196,7 +204,7 @@ public class NPCFOV : MonoBehaviour
         }
     }
 
-    void OnDrawGizmos()
+    /*void OnDrawGizmos()
     {
         // Visualize detection radius and field of view
         Gizmos.color = Color.red;
@@ -208,5 +216,5 @@ public class NPCFOV : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawLine(head.position, head.position + leftBoundary);
         Gizmos.DrawLine(head.position, head.position + rightBoundary);
-    }
+    }*/
 }
