@@ -6,11 +6,12 @@ using UnityEngine;
 public class AnimationBehavior : MonoBehaviour
 {
     private Animator _animatorController;
+    private NPCFOV _NPCFOV;
 
     // Start is called before the first frame update
     void Start()
     {
-
+        
     }
 
     // Update is called once per frame
@@ -22,9 +23,11 @@ public class AnimationBehavior : MonoBehaviour
     private void OnTriggerEnter(Collider other)
     {
         print(other.gameObject.name);
+        _NPCFOV = other.GetComponentInParent<NPCFOV>();
+        _NPCFOV._playerInteracted = true;
         _animatorController = other.GetComponentInParent<Animator>();
         _animatorController.SetBool("IsTouched", true);
-        if (other.gameObject.name.Contains("RShoulderCollider"))
+        /*if (other.gameObject.name.Contains("RShoulderCollider"))
         {
             _animatorController.SetBool("IsTurning", true);
             _animatorController.SetBool("TurnRight", true);
@@ -36,7 +39,7 @@ public class AnimationBehavior : MonoBehaviour
             _animatorController.SetBool("IsTurning", true);
             _animatorController.SetBool("TurnLeft", true);
             _animatorController.SetBool("TurnRight", false);
-        }
+        }*/
     }
 
     private void OnTriggerExit(Collider other)

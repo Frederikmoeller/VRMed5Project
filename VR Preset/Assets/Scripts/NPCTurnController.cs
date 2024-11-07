@@ -11,7 +11,7 @@ public class NPCTurnController : MonoBehaviour
     private bool isTurningLeft = false;
     private NavMeshAgent _navMeshAgent;
     private Rigidbody rb;
-    [SerializeField] private Vector3 NPCDestination;
+    [SerializeField] private Transform NPCDestination;
     [SerializeField] private float searchRadius = 5f; // Radius to search for a valid NavMesh position
     private bool _isWaiting = false;
 
@@ -21,12 +21,13 @@ public class NPCTurnController : MonoBehaviour
         _navMeshAgent = GetComponent<NavMeshAgent>();
         rb = GetComponent<Rigidbody>();
         //SetNewDestination();
+        _navMeshAgent.destination = NPCDestination.position;
     }
 
     void Update()
     {
         // Temporary (Delete later)
-        NPCDestination = _navMeshAgent.destination;
+         
         // Check which turn animation is playing
         isTurningRight = animator.GetCurrentAnimatorStateInfo(0).IsName("Turning Right");
         isTurningLeft = animator.GetCurrentAnimatorStateInfo(0).IsName("Turning Left");
@@ -37,37 +38,46 @@ public class NPCTurnController : MonoBehaviour
             AnimatorStateInfo stateInfo = animator.GetCurrentAnimatorStateInfo(0);
             if (stateInfo.normalizedTime >= 1.0f && !animator.IsInTransition(0)) // Turn animation complete
             {
-                animator.SetBool("IsTurning", false);  // Stop turning after the animation finishes
+                animator.SetBool("IsTurning", false); // Stop turning after the animation finishes
             }
         }
-        
-        // Handle walking and reaching the destination
-        /*if (_isWaiting) return;
-        if (_navMeshAgent.remainingDistance <= _navMeshAgent.stoppingDistance && !_navMeshAgent.pathPending)
+
+        if (transform.position != _navMeshAgent.destination)
         {
-            if (!_isWaiting || _navMeshAgent.velocity.magnitude < 0.1)
+            animator.SetFloat("WalkAnimSpeed", _navMeshAgent.velocity.magnitude);
+            if (_navMeshAgent.remainingDistance <= _navMeshAgent.stoppingDistance && !_navMeshAgent.pathPending)
             {
-                animator.SetBool("Walking", false);
-                StartCoroutine(WaitBeforeNextMove()); // Start wait coroutine before setting new destination
+                transform.position = new Vector3(_navMeshAgent.destination.x, _navMeshAgent.destination.y,
+                    _navMeshAgent.destination.z);
+                if (_navMeshAgent.velocity.magnitude < 0.1)
+                {
+                    animator.SetBool("Walking", false);
+                    //StartCoroutine(WaitBeforeNextMove()); // Start wait coroutine before setting new destination
+                }
+            }
+            else
+            {
+                animator.SetBool("Walking", true);
             }
         }
-        else
-        {
-            animator.SetBool("Walking", false);
-        }*/
+    }
+
+    // Handle walking and reaching the destination
+        /*if (_isWaiting) return;
+        
     }
 
     // Coroutine to wait for a set amount of time before moving to the next destination
-    IEnumerator WaitBeforeNextMove()
+    /*IEnumerator WaitBeforeNextMove()
     {
         _isWaiting = true;
         yield return new WaitForSeconds(Random.Range(1f, 10f)); // Wait for the specified time
         //SetNewDestination();
         _isWaiting = false;
-    }
+    }*/
 
     // Set a new random destination using NavMesh.SamplePosition to ensure it's valid
-    void SetNewDestination()
+    /*void SetNewDestination()
     {
         Vector3 randomPoint = new Vector3(Random.Range(-49f, 49f), 0f, Random.Range(-49f, 49f)); // Random point within the level
         NavMeshHit hit; // Store the result of NavMesh.SamplePosition
@@ -82,5 +92,5 @@ public class NPCTurnController : MonoBehaviour
             Debug.LogWarning("No valid NavMesh position found near " + randomPoint);
             SetNewDestination();
         }
-    }
+    }*/
 }

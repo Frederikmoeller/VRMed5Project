@@ -4,7 +4,8 @@ using UnityEngine;
 
 public class NPCFOV : MonoBehaviour
 {
-    [SerializeField] private float detectionRadius = 15f;
+    public bool _playerInteracted;
+    [SerializeField] private float detectionRadius = 7.5f;
     [SerializeField] private float fieldOfViewAngle = 60f;
     [SerializeField] private LayerMask playerLayer;
     [SerializeField] private Transform head;
@@ -13,161 +14,195 @@ public class NPCFOV : MonoBehaviour
     [SerializeField] private float bodyRotationThreshold = 10f;
     [SerializeField] private float soundDetectionRadius = 15f;
     [SerializeField] private float minimumSoundThreshold = 0.05f;
-    [SerializeField] private float distanceToPlayer;
+    [SerializeField] private Transform _currentTarget;
     [SerializeField] private Transform _player;
-    [SerializeField] private bool _isPlayerDetected = false;
+    private bool _isPlayerDetected;
+    [SerializeField] private Vector3 _lastKnownTargetPosition;
     private Animator _animator;
-    private Vector3 _lastKnownPlayerPosition;
-    private Vector3 _directionToPlayer;
-    private MicInput _playerMic; // Reference to the MicInput script
-    private bool _isTouchedLeft;
-    private bool _isTouchedRight;
-
+    private MicInput _playerMic;
     private float _lookAtWeight;
-
-    private Quaternion _defaultHeadRotation;
+    [SerializeField] private float distanceToPlayer;
+    private bool _isNewTarget;
+    [SerializeField] private Vector3 _currentLookAtPosition;
+    [SerializeField] private float currentSoundThreshold;
+    [SerializeField] private bool inFocusRange;
 
     void Start()
     {
-        // Get the Animator component on the NPC
         _animator = GetComponent<Animator>();
-        // Store the initial head rotation
-        _defaultHeadRotation = head.rotation;
+        _player = GameObject.FindGameObjectWithTag("Player").transform;
+        _playerMic = _player.GetComponentInParent<MicInput>();
+
+        if (_playerMic == null)
+        {
+            Debug.LogWarning("MicInput component not found on player!");
+        }
+
+        inFocusRange = false;
     }
     
     void FixedUpdate()
     {
-        _isTouchedRight = _animator.GetCurrentAnimatorStateInfo(0).IsName("Turning Right");
-        _isTouchedLeft = _animator.GetCurrentAnimatorStateInfo(0).IsName("Turning Left");
-        DetectPlayer();
-        if (_isPlayerDetected)
-        {
-            RotateBodyTowardsPlayer();
-        }
-        
+        currentSoundThreshold = GetSoundThreshold();
+        DetectTarget();
+        RotateBodyTowardsTarget();
     }
 
-    void DetectPlayer()
+    void DetectTarget()
     {
-        // Get all colliders within the detection radius (since there's only one player, we expect 0 or 1 result)
-        Collider[] hits = Physics.OverlapSphere(head.position, detectionRadius, playerLayer);
-        
-        // Check if player was detected
-        if (hits.Length > 0)
+        // Reset detection if the current target is no longer valid
+        if (!IsValidTarget(_currentTarget))
         {
-            _playerMic = hits[0].gameObject.GetComponent<MicInput>();
-            Transform playerHead = hits[0].transform.GetChild(0).GetChild(0);
+            _currentTarget = null;
+            _isPlayerDetected = false;
+        }
 
-            // Check if MicInput exists on the player
-            if (_playerMic == null)
+        // Set up variables to track best potential target
+        Transform bestTarget = null;
+        float closestDistance = soundDetectionRadius;
+
+        // Get all objects within the detection radius
+        Collider[] hits = Physics.OverlapSphere(head.position, soundDetectionRadius, playerLayer);
+
+        foreach (var hit in hits)
+        {
+            // Prioritize player if they've interacted with the NPC
+            if (hit.CompareTag("Player") && _playerInteracted)
             {
-                Debug.LogWarning("MicInput component not found on player!");
-                return;
+                bestTarget = hit.transform.GetChild(0).GetChild(0);
+                _isPlayerDetected = true;
+                break; // Stop searching if the player is found and interacted
             }
-            
-            if (playerHead == null)
+            if (hit.CompareTag("PointOfInterest"))
             {
-                Debug.LogWarning("Head transform not found!");
-                return;
-            }
-            
-            distanceToPlayer = (head.position - _playerMic.transform.position).magnitude;
-            float soundThreshold = Mathf.Lerp(soundDetectionRadius / soundDetectionRadius, minimumSoundThreshold, 1 - (distanceToPlayer / soundDetectionRadius));
-            print(soundThreshold);
-
-            if (_playerMic.soundVolume > soundThreshold)
-            {
-                _lastKnownPlayerPosition = _player.position;
-                print("Heard!");
-            }
-
-            _player = playerHead;
-            print(_player);
-
-            // Check if within field of view
-            _directionToPlayer = (_player.position - head.position).normalized;
-            float angle = Vector3.Angle(transform.forward, _directionToPlayer);
-            
-            //print("Angle to Player: " + angle);
-
-            if (angle < fieldOfViewAngle / 2f)
-            {
-                print("Seen?");
-                // Raycast to ensure no obstacles are blocking the view
-
-                Vector3 rayOrigin = head.position;
-                Debug.DrawRay(rayOrigin, _directionToPlayer * detectionRadius, Color.green);
-
-                Physics.Raycast(rayOrigin, _directionToPlayer, out RaycastHit what, detectionRadius);
-                //print(what.collider.gameObject.name);
-                
-                if (Physics.Raycast(rayOrigin, _directionToPlayer, out RaycastHit rayHit, detectionRadius))
+                // Find the closest "PointOfInterest" if the player is not prioritized
+                float distance = Vector3.Distance(head.position, hit.transform.position);
+                if (distance < closestDistance)
                 {
-                    print("Raycast Hit: " + rayHit.collider.gameObject.name);
-                    if (rayHit.collider.gameObject.layer == LayerMask.NameToLayer("Player"))
-                    {
-                        _isPlayerDetected = true; // Make the head look at the player
-                        print("Seen!");
-                        _lastKnownPlayerPosition = _player.position;
-                        return; // Exit early since we've detected the player
-                    }
-                }
-                else
-                {
-                    print("Raycast hit nothing!");
+                    closestDistance = distance;
+                    bestTarget = hit.transform;
                 }
             }
         }
-        _isPlayerDetected = false;
-    }
 
-    void DistanceToPlayer()
-    {
-        distanceToPlayer = (_player.position - head.position).magnitude;
-    }
-
-    void RotateBodyTowardsPlayer()
-    {
-        if (_player == null) return;
-
-        float angleToPlayer = Vector3.Angle(transform.forward, _directionToPlayer);
-
-        if (angleToPlayer > fieldOfViewAngle / 2f - bodyRotationThreshold)
+        if (distanceToPlayer <= detectionRadius)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(_directionToPlayer);
+            inFocusRange = true;
+        }
+
+        // Sound detection to update player detection
+        if (_playerMic.soundVolume > GetSoundThreshold())
+        {
+            if (distanceToPlayer <= soundDetectionRadius)
+            {
+                _playerInteracted = true;
+            }
+        }
+        
+        // Check if a new target is found and update accordingly
+        if (bestTarget != _currentTarget)
+        {
+            _currentTarget = bestTarget;
+            _isPlayerDetected = _currentTarget != null && _currentTarget.CompareTag("Player");
+            _isNewTarget = true;  // Mark that we have a new target
+        }
+
+    }
+
+    // Helper method to determine if the current target is valid
+    bool IsValidTarget(Transform target)
+    {
+    if (target == null) return false;
+    float distance = Vector3.Distance(head.position, target.position);
+    Vector3 directionToTarget = (target.position - head.position).normalized;
+    float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
+
+    // Check if target is within detection radius and field of view
+    if (distance <= detectionRadius)
+    {
+        // Ensure there are no obstacles between NPC and target
+        if (Physics.Raycast(head.position, directionToTarget, out RaycastHit hit, detectionRadius))
+        {
+            return hit.transform == target;
+        }
+    }
+    if (_playerInteracted && inFocusRange && distance > detectionRadius)
+    {
+        _playerInteracted = false;
+        inFocusRange = false;
+        return false;
+    }
+    return false;
+}
+
+    float GetSoundThreshold()
+    {
+    // Calculate sound threshold based on distance to player
+    if (_player == null) return minimumSoundThreshold;
+    distanceToPlayer = Vector3.Distance(head.position, _player.position);
+    return Mathf.Lerp(0.5f, minimumSoundThreshold, 1 - distanceToPlayer / soundDetectionRadius);
+    }
+
+    void RotateBodyTowardsTarget()
+    {
+        if (_currentTarget == null) return;
+
+        // Calculate the direction and angle to the target
+        Vector3 directionToTarget = (_currentTarget.position - transform.position).normalized;
+        float angleToTarget = Vector3.Angle(transform.forward, directionToTarget);
+
+        // Check if the angle to the target is close to or beyond the edge of the field of view
+        if (Mathf.Abs(angleToTarget - fieldOfViewAngle / 2f) >= bodyRotationThreshold || angleToTarget > fieldOfViewAngle / 2f)
+        {
+            // Get the target rotation on the Y-axis
+            Quaternion targetRotation = Quaternion.LookRotation(new Vector3(directionToTarget.x, 0, directionToTarget.z));
+
+            // Smoothly rotate the body around the Y-axis to face the target directly
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * bodyRotationSpeed);
         }
     }
 
+
     void OnAnimatorIK(int layerIndex)
     {
-        if (_isPlayerDetected && _player != null)
+
+        if (_currentTarget != null)
         {
-            // Set the weight for IK
+            // Smoothly interpolate from the last target position to the new target position
+            Vector3 targetPosition = _currentTarget.position;
+
+            // If a new target is detected, immediately update last known position to avoid snapping
+            if (_isNewTarget)
+            {
+                _lastKnownTargetPosition = targetPosition;
+                _isNewTarget = false;
+            }
+                // Smoothly transition to the new target position
+                _currentLookAtPosition = Vector3.Lerp(_currentLookAtPosition, _lastKnownTargetPosition, Time.deltaTime * headTurnSpeed);
+            
+
+            // Set look-at weight and position
             _lookAtWeight = Mathf.Lerp(_lookAtWeight, 1f, Time.deltaTime * headTurnSpeed);
             _animator.SetLookAtWeight(_lookAtWeight);
+            _animator.SetLookAtPosition(_currentLookAtPosition);
 
-            // Set the look at position to the player's position
-            _animator.SetLookAtPosition(_lastKnownPlayerPosition);
-            
-            Debug.Log("Looking at: " + _player.name);
+            Debug.Log($"Smoothing towards target position at {targetPosition}, Weight: {_lookAtWeight}");
         }
         else
         {
+            // Gradually reduce look-at weight when no target exists
             _lookAtWeight = Mathf.Lerp(_lookAtWeight, 0f, Time.deltaTime * headTurnSpeed);
-            // Set IK LookAt to the last known position as weight fades out
             _animator.SetLookAtWeight(_lookAtWeight);
-            _animator.SetLookAtPosition(_lastKnownPlayerPosition);
         }
     }
 
     void OnDrawGizmos()
     {
-        // Visualize detection radius
+        // Visualize detection radius and field of view
         Gizmos.color = Color.red;
         Gizmos.DrawWireSphere(head.position, detectionRadius);
+        Gizmos.DrawWireSphere(head.position, soundDetectionRadius);
 
-        // Visualize field of view
         Vector3 leftBoundary = Quaternion.Euler(0, -fieldOfViewAngle / 2f, 0) * head.forward * detectionRadius;
         Vector3 rightBoundary = Quaternion.Euler(0, fieldOfViewAngle / 2f, 0) * head.forward * detectionRadius;
         Gizmos.color = Color.yellow;

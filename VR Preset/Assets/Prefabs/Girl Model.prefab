@@ -1587,7 +1587,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 919659359958588646}
-  - component: {fileID: 4623004140839902674}
   m_Layer: 0
   m_Name: face
   m_TagString: Untagged
@@ -1613,23 +1612,6 @@ Transform:
   m_Father: {fileID: 8217092902109959787}
   m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: -7.368, y: -0, z: 0}
---- !u!114 &4623004140839902674
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5001599417416079290}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7de926b7e9e0f7942b4041dafcc3dbd2, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  detectionRadius: 15
-  fieldOfViewAngle: 60
-  playerLayer:
-    serializedVersion: 2
-    m_Bits: 4096
 --- !u!1 &5207712492934668586
 GameObject:
   m_ObjectHideFlags: 0
@@ -1675,6 +1657,7 @@ GameObject:
   - component: {fileID: 7446503409467588874}
   - component: {fileID: 3833533828550131283}
   - component: {fileID: 6861345222372723385}
+  - component: {fileID: 1696887947047581819}
   m_Layer: 0
   m_Name: Girl Model
   m_TagString: Untagged
@@ -1708,11 +1691,11 @@ Animator:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5623831511838682468}
   m_Enabled: 1
-  m_Avatar: {fileID: 0}
+  m_Avatar: {fileID: 9000000, guid: 56c316d835a4f024ea20f11c2328a554, type: 3}
   m_Controller: {fileID: 9100000, guid: c9260ff4aa0c8f842822e5151b72c545, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
-  m_ApplyRootMotion: 0
+  m_ApplyRootMotion: 1
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_WarningMessage: 
@@ -1728,7 +1711,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5623831511838682468}
   serializedVersion: 4
-  m_Mass: 1
+  m_Mass: 5
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -1783,6 +1766,32 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &1696887947047581819
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5623831511838682468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7de926b7e9e0f7942b4041dafcc3dbd2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  detectionRadius: 15
+  fieldOfViewAngle: 90
+  playerLayer:
+    serializedVersion: 2
+    m_Bits: 4096
+  head: {fileID: 1019481696231695560}
+  headTurnSpeed: 5
+  bodyRotationSpeed: 2
+  bodyRotationThreshold: 10
+  soundDetectionRadius: 15
+  minimumSoundThreshold: 0.05
+  distanceToPlayer: 0
+  _player: {fileID: 0}
+  _isPlayerDetected: 0
 --- !u!1 &5752910518987217048
 GameObject:
   m_ObjectHideFlags: 0
