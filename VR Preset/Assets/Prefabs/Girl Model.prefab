@@ -1674,7 +1674,7 @@ Transform:
   m_GameObject: {fileID: 5623831511838682468}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 3.167996, y: 0, z: 4.4645405}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalScale: {x: 1.08, y: 1.08, z: 1.08}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7646777732478110067}
@@ -1780,7 +1780,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _playerInteracted: 0
   detectionRadius: 7.5
-  fieldOfViewAngle: 90
+  fieldOfViewAngle: 170
   playerLayer:
     serializedVersion: 2
     m_Bits: 12288
@@ -1788,6 +1788,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4087
   head: {fileID: 1019481696231695560}
+  _characterController: {fileID: 0}
   headTurnSpeed: 5
   bodyRotationSpeed: 2
   bodyRotationThreshold: 10
@@ -1798,8 +1799,10 @@ MonoBehaviour:
   _lastKnownTargetPosition: {x: 0, y: 0, z: 0}
   distanceToPlayer: 0
   _currentLookAtPosition: {x: 0, y: 0, z: 0}
-  currentSoundThreshold: 0
   inFocusRange: 0
+  minimumDetectionMoveSpeed: 1
+  playerMoveSpeed: 0
+  lookingAround: 0
 --- !u!1 &5752910518987217048
 GameObject:
   m_ObjectHideFlags: 0
