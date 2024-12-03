@@ -4,10 +4,14 @@ using UnityEngine;
 
 public class NPCFOV : MonoBehaviour
 {
+    public NPCGroup CurrentGroup;
+    public bool _isTalking;
+    public float speakerDuration;
     public bool _playerInteracted;
+    [SerializeField] private GameManager _gameManager;
     [SerializeField] private float detectionRadius = 7.5f;
     [SerializeField] private float fieldOfViewAngle = 60f;
-    [SerializeField] private LayerMask playerLayer;
+    [SerializeField] private LayerMask TargetLayers;
     [SerializeField] private LayerMask obstacleLayer;
     [SerializeField] private Transform head;
     [SerializeField] private CharacterController _characterController;
@@ -30,6 +34,7 @@ public class NPCFOV : MonoBehaviour
     [SerializeField] private float minimumDetectionMoveSpeed = 1f;
     [SerializeField] private float playerMoveSpeed;
     [SerializeField] private bool lookingAround;
+    [SerializeField] private List<GameObject> _interactableNPCs;
     private float alignment;
 
     void Start()
@@ -38,10 +43,19 @@ public class NPCFOV : MonoBehaviour
         _player = GameObject.FindGameObjectWithTag("Player").transform;
         _playerMic = _player.GetComponentInParent<MicInput>();
         _characterController = _player.GetComponent<CharacterController>();
+        _gameManager = GameObject.Find("GameManager").GetComponent<GameManager>();
 
         if (_playerMic == null)
         {
             Debug.LogWarning("MicInput component not found on player!");
+        }
+        
+        AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
+
+        // Play the idle animation at a random point
+        if (stateInfo.IsName("Idle")) // Replace "Idle" with the actual state name
+        {
+            _animator.Play(stateInfo.shortNameHash, 0, Random.Range(0f, .9f));
         }
 
         inFocusRange = false;
@@ -54,43 +68,109 @@ public class NPCFOV : MonoBehaviour
         {
             RotateBodyAnim();
         }
+        
+        _animator.SetBool("IsTalking", _isTalking);
 
         playerMoveSpeed = _characterController.velocity.magnitude;
     }
 
     void DetectTarget()
+{
+    ResetDetectionIfInvalid();
+
+    Collider[] hits = Physics.OverlapSphere(head.position, soundDetectionRadius, TargetLayers);
+
+    foreach (var hit in hits)
     {
-        // Reset detection if the current target is no longer valid
-        if (!IsValidTarget(_currentTarget))
+        if (gameObject.CompareTag("NPC"))
         {
-            _currentTarget = null;
-            _isPlayerDetected = false;
+            if (hit.gameObject != gameObject)
+            {
+                _interactableNPCs.Add(hit.gameObject);
+            }
+        }
+    }
+
+    if (distanceToPlayer <= detectionRadius)
+    {
+        inFocusRange = true;
+    }
+
+    VisionDetection();
+
+    HandleLookingAround();
+
+    if (_gameManager.BigTestingDay)
+    {
+        if (_gameManager._lookButtonPressed && distanceToPlayer < soundDetectionRadius)
+        {
+            _playerInteracted = true;
         }
 
-        // Set up variables to track best potential target
-        Transform bestTarget = null;
-        float closestDistance = soundDetectionRadius;
+        if (CurrentGroup.members.Count > 1 && _gameManager._lookButtonPressed && _gameManager._lookingAtPlayer == false)
+        {
+            foreach (var npc in CurrentGroup.members)
+            {
+                npc.StartCoroutine(npc.LookAtPlayer());
+                _isTalking = false;
+            }
+        }
+    }
+    else
+    {
+        if (CheckSoundDetection())
+        {
+            _playerInteracted = true;
+        }
+    }
 
-        // Get all objects within the detection radius
-        Collider[] hits = Physics.OverlapSphere(head.position, soundDetectionRadius, playerLayer);
+    if (_gameManager._lookingAtPlayer == false)
+    {
+        UpdateTarget(FindBestTarget(hits));
+    }
+}
 
+void ResetDetectionIfInvalid()
+{
+    if (!IsValidTarget(_currentTarget))
+    {
+        _currentTarget = null;
+        _isPlayerDetected = false;
+    }
+}
+
+Transform FindBestTarget(Collider[] hits)
+{
+    Transform bestTarget = _currentTarget;
+    float closestDistance = soundDetectionRadius;
+            
+    // Check if NPC is part of a group and get the speaker
+    if (CurrentGroup != null && CurrentGroup.members.Count > 1 && CurrentGroup.currentSpeaker != null)
+    {
+        if (this == CurrentGroup.currentSpeaker)
+        {
+            bestTarget = bestTarget == null ? _gameManager.transform : bestTarget;
+        }
+        else
+        {
+            bestTarget = CurrentGroup.currentSpeaker.head;
+        }
+        print("setting current target group wise");
+    }
+    else
+    {
+        print("setting current target solo wise");
         foreach (var hit in hits)
         {
-            // Prioritize player if they've interacted with the NPC
-            if (hit.CompareTag("Player"))
+            if (hit.CompareTag("Player") && _playerInteracted)
             {
-                //playerMoveSpeed = _player.GetComponent<CharacterController>().velocity.magnitude;
-                if (_playerInteracted)
-                {
-                    bestTarget = hit.transform.GetChild(0).GetChild(0);
-                    _isPlayerDetected = true;
-                }
-
+                bestTarget = hit.transform.GetChild(0).GetChild(0);
+                _isPlayerDetected = true;
                 break; // Stop searching if the player is found and interacted
             }
+                
             if (hit.CompareTag("PointOfInterest"))
             {
-                // Find the closest "PointOfInterest" if the player is not prioritized
                 float distance = Vector3.Distance(head.position, hit.transform.position);
                 if (distance < closestDistance)
                 {
@@ -99,74 +179,82 @@ public class NPCFOV : MonoBehaviour
                 }
             }
         }
+    }
+    return bestTarget;
+}
 
-        if (distanceToPlayer <= detectionRadius)
+    void HandleLookingAround()
+    {
+        if (inFocusRange && !_isPlayerDetected)
         {
-            inFocusRange = true;
-        }
-        
-        VisionDetection();
-
-        if (inFocusRange && _isPlayerDetected == false)
-        {
-            print(GetSpeedThreshold());
-            if (playerMoveSpeed >= GetSpeedThreshold() && lookingAround == false)
+            if (playerMoveSpeed >= GetSpeedThreshold() && !lookingAround && CurrentGroup.members.Count > 1)
             {
                 lookingAround = true;
                 _animator.SetBool("IsTurning", true);
                 _animator.SetBool("TurnLeft", true);
             }
         }
+
         AnimatorStateInfo stateInfo = _animator.GetCurrentAnimatorStateInfo(0);
         if (lookingAround)
-        {                
-            if (_playerInteracted)
-            {
-                lookingAround = false;
-                _animator.SetBool("TurnLeft", false);
-                _animator.SetBool("IsTurning", false);
-            }
-            if (stateInfo.normalizedTime >= 1.0f && !_animator.IsInTransition(0)) // Turn animation complete
-            {
-                if (_animator.GetBool("TurnLeft") && stateInfo.normalizedTime >= 1.0f)
-                {
-                    _animator.SetBool("TurnLeft", false);
-                    _animator.SetBool("TurnRight", true);
-                }
-                else if (lookingAround && stateInfo.normalizedTime >= 1.0f && playerMoveSpeed >= GetSpeedThreshold())
-                {
-                    _animator.SetBool("TurnRight", false);
-                    _animator.SetBool("TurnLeft", true);
-                }
-                else if (lookingAround && stateInfo.normalizedTime >= 1.0f && playerMoveSpeed <= GetSpeedThreshold())
-                {
-                    lookingAround = false;
-                    _animator.SetBool("IsTurning", false);
-                    _animator.SetBool("TurnRight", false);
-                }
-            }
-        }
-
-
-        // Sound detection to update player detection
-        if (_playerMic.soundVolume > GetSoundThreshold())
         {
-            if (distanceToPlayer <= soundDetectionRadius)
+            HandleTurnAnimation(stateInfo);
+        }
+}
+
+    void HandleTurnAnimation(AnimatorStateInfo stateInfo)
+    {
+        if (_playerInteracted)
+        {
+            ResetTurnAnimation();
+        }
+
+        if (stateInfo.normalizedTime >= 1.0f && !_animator.IsInTransition(0))
+        {
+            if (_animator.GetBool("TurnLeft") && stateInfo.normalizedTime >= 1.0f)
             {
-                _playerInteracted = true;
+                _animator.SetBool("TurnLeft", false);
+                _animator.SetBool("TurnRight", true);
+            }
+            else if (playerMoveSpeed >= GetSpeedThreshold())
+            {
+                _animator.SetBool("TurnRight", false);
+                _animator.SetBool("TurnLeft", true);
+            }
+            else
+            {
+                ResetTurnAnimation();
             }
         }
-        
-        // Check if a new target is found and update accordingly
+}
+
+    void ResetTurnAnimation()
+    {
+        lookingAround = false;
+        _animator.SetBool("IsTurning", false);
+        _animator.SetBool("TurnLeft", false);
+        _animator.SetBool("TurnRight", false);
+    }
+
+    bool CheckSoundDetection()
+    {
+        return _playerMic.soundVolume > GetSoundThreshold() && distanceToPlayer <= soundDetectionRadius;
+    }
+
+    void UpdateTarget(Transform bestTarget)
+    {
         if (bestTarget != _currentTarget)
         {
             _currentTarget = bestTarget;
             _isPlayerDetected = _currentTarget != null && _currentTarget.CompareTag("Player");
-            _isNewTarget = true;  // Mark that we have a new target
-            Vector3 directionToTarget = (_currentTarget.position - transform.position).normalized;
-            RotateBodyTowardsTarget(directionToTarget);
+            _isNewTarget = true; 
+            
+            if (_currentTarget != null)
+            {
+                Vector3 directionToTarget = (_currentTarget.position - transform.position).normalized;
+                RotateBodyTowardsTarget(directionToTarget);
+            }
         }
-
     }
 
     void VisionDetection()
@@ -320,6 +408,16 @@ public class NPCFOV : MonoBehaviour
             _lookAtWeight = Mathf.Lerp(_lookAtWeight, 0f, Time.deltaTime * headTurnSpeed);
             _animator.SetLookAtWeight(_lookAtWeight);
         }
+    }
+
+    IEnumerator LookAtPlayer()
+    {
+        _playerInteracted = true;
+        _gameManager._lookingAtPlayer = true;
+        UpdateTarget(_player.GetChild(0).GetChild(0));
+        yield return new WaitForSeconds(5);
+        _gameManager._lookingAtPlayer = false;
+        _playerInteracted = false;
     }
 
     void OnDrawGizmos()

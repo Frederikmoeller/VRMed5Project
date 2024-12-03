@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 0e5fa743a1aaf1f40827384cb58df766
+guid: 38e424389f108174ebb3939acee3c4e8
 ModelImporter:
   serializedVersion: 22200
   internalIDToNameTable: []
@@ -33,11 +33,11 @@ ModelImporter:
     extraUserProperties: []
     clipAnimations:
     - serializedVersion: 16
-      name: Left Turn
+      name: Talking
       takeName: mixamo.com
       internalID: -203655887218126122
-      firstFrame: 0
-      lastFrame: 70
+      firstFrame: 80
+      lastFrame: 472
       wrapMode: 0
       orientationOffsetY: 0
       level: 0
@@ -48,11 +48,11 @@ ModelImporter:
       loopBlend: 1
       loopBlendOrientation: 0
       loopBlendPositionY: 0
-      loopBlendPositionXZ: 1
+      loopBlendPositionXZ: 0
       keepOriginalOrientation: 0
-      keepOriginalPositionY: 0
+      keepOriginalPositionY: 1
       keepOriginalPositionXZ: 0
-      heightFromFeet: 1
+      heightFromFeet: 0
       mirror: 0
       bodyMask: 01000000010000000100000001000000010000000100000001000000010000000100000001000000010000000100000001000000
       curves: []
