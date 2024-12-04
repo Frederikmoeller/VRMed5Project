@@ -10,7 +10,7 @@ AnimatorStateTransition:
   m_Conditions:
   - m_ConditionMode: 4
     m_ConditionEvent: RotationLimit
-    m_EventTreshold: 0.75
+    m_EventTreshold: 0.5
   - m_ConditionMode: 1
     m_ConditionEvent: TurnAroundLeft
     m_EventTreshold: 0
@@ -645,7 +645,7 @@ AnimatorStateTransition:
   m_Conditions:
   - m_ConditionMode: 4
     m_ConditionEvent: RotationLimit
-    m_EventTreshold: 0.75
+    m_EventTreshold: 0.5
   - m_ConditionMode: 1
     m_ConditionEvent: TurnAroundRight
     m_EventTreshold: 0

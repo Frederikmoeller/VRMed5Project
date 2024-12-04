@@ -64,7 +64,7 @@ public class NPCFOV : MonoBehaviour
     void FixedUpdate()
     {
         DetectTarget();
-        if (!lookingAround)
+        if (!lookingAround && _gameManager.enhancementOn)
         {
             RotateBodyAnim();
         }
@@ -114,6 +114,11 @@ public class NPCFOV : MonoBehaviour
                 npc.StartCoroutine(npc.LookAtPlayer());
                 _isTalking = false;
             }
+        }
+
+        if (_animator.GetBool("IsTouched"))
+        {
+            StartCoroutine(LookAtPlayer());
         }
     }
     else
@@ -337,18 +342,28 @@ Transform FindBestTarget(Collider[] hits)
         Vector3 flatDirectionToTarget = new Vector3(directionToTarget.x, 0, directionToTarget.z).normalized;
         float angleToTarget = Vector3.SignedAngle(flatForward, flatDirectionToTarget, Vector3.up);
 
-        if (alignment < .75f)
+        if (CurrentGroup.members.Count > 1)
         {
-            bodyRotationSpeed = 2f;
-            RotateBodyTowardsTarget(directionToTarget);
+            if (alignment < .5f)
+            {
+                bodyRotationSpeed = 2f;
+                RotateBodyTowardsTarget(directionToTarget);
+            }
         }
-        else if (alignment > .75)
+        else
         {
-            bodyRotationSpeed = .5f;
-            RotateBodyTowardsTarget(directionToTarget);
+            if (alignment < .5f)
+            {
+                bodyRotationSpeed = 2f;
+                RotateBodyTowardsTarget(directionToTarget);
+            }
+            else if (alignment > .5)
+            {
+                bodyRotationSpeed = .5f;
+                RotateBodyTowardsTarget(directionToTarget);
+            }
         }
-
-
+        
         if (angleToTarget > 0)
         {
             _animator.SetBool("TurnAroundLeft", true);
@@ -367,7 +382,7 @@ Transform FindBestTarget(Collider[] hits)
 
     void OnAnimatorIK(int layerIndex)
     {
-        if (_currentTarget != null)
+        if (_currentTarget != null && _gameManager.enhancementOn)
         {
             Vector3 directionToTarget = (_currentTarget.position - transform.position).normalized;
             // Project vectors onto the XZ plane (ignore Y-axis)

@@ -13,6 +13,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private InputActionReference _lookButtonAction;
     public bool _lookButtonPressed;
     public bool _lookingAtPlayer;
+    public bool enhancementOn;
 
     // Update groups based on proximity
     void Update()
