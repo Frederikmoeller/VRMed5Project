@@ -27,19 +27,6 @@ public class AnimationBehavior : MonoBehaviour
         _NPCFOV._playerInteracted = true;
         _animatorController = other.GetComponentInParent<Animator>();
         _animatorController.SetBool("IsTouched", true);
-        /*if (other.gameObject.name.Contains("RShoulderCollider"))
-        {
-            _animatorController.SetBool("IsTurning", true);
-            _animatorController.SetBool("TurnRight", true);
-            _animatorController.SetBool("TurnLeft", false);
-        }
-
-        if (other.gameObject.name.Contains("LShoulderCollider"))
-        {
-            _animatorController.SetBool("IsTurning", true);
-            _animatorController.SetBool("TurnLeft", true);
-            _animatorController.SetBool("TurnRight", false);
-        }*/
     }
 
     private void OnTriggerExit(Collider other)
